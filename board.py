@@ -52,6 +52,7 @@ class GoBoard(object):
         self.ko_recapture = None
         self.last_move = None
         self.last2_move = None
+        self.win = None
         self.current_player = BLACK
         self.maxpoint = size * size + 3 * (size + 1)
         self.board = np.full(self.maxpoint, BORDER, dtype=GO_POINT)
@@ -64,6 +65,7 @@ class GoBoard(object):
         b.ko_recapture = self.ko_recapture
         b.last_move = self.last_move
         b.last2_move = self.last2_move
+        b.win = self.win
         b.current_player = self.current_player
         assert b.maxpoint == self.maxpoint
         b.board = np.copy(self.board)
@@ -200,6 +202,8 @@ class GoBoard(object):
         assert is_black_white(color)
         if self.board[point] != EMPTY:
             return False
+        if self.win != None:
+            return False
         self.board[point] = color
         self.current_player = GoBoardUtil.opponent(color)
         self.last2_move = self.last_move
@@ -237,4 +241,22 @@ class GoBoard(object):
             board_moves.append(self.last_move)
         if self.last2_move != None and self.last2_move != PASS:
             board_moves.append(self.last2_move)
-            return 
+            return
+
+    def check_nbrs(self, point, color, direction):
+        connected = 0
+        while True:
+            if self.get_color(point + direction) == color:
+                connected += 1
+                point += direction
+            elif connected == 4:
+                break
+            else:
+                break
+        return connected
+        
+    
+    def set_winner(self,color):
+        self.win = color
+        return True
+        

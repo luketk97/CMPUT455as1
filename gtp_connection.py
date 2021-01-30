@@ -158,17 +158,13 @@ class GtpConnection:
     def board2d(self):
         return str(GoBoardUtil.get_twoD_board(self.board))
 
-    def check_nbrs(self, point, color, direction):
-        connected = 0
-        while True:
-            if self.board.get_color(point + direction) == color:
-                connected += 1
-                point += direction
-            elif connected == 4:
-                break
-            else:
-                break
-        return connected
+    def check_win(self,pt,color,dirs):
+        connected = 1
+        for _dir in dirs:
+            connected += self.board.check_nbrs(pt, color, _dir)
+        if connected >= 5:
+            return True
+        return False
 
     def protocol_version_cmd(self, args):
         """ Return the GTP protocol version being used (always 2) """
@@ -226,10 +222,11 @@ class GtpConnection:
     def gogui_rules_legal_moves_cmd(self, args):
         """ Implement this function for Assignment 1 """
         legal_coords = []
-        for move in self.board.get_empty_points():
-            coord = point_to_coord(move, self.board.size)
-            legal_coords.append(format_point(coord))
-        list_to_str = ' '.join(sorted(legal_coords))
+        if self.board.win == None:
+            for move in self.board.get_empty_points():
+                coord = point_to_coord(move, self.board.size)
+                legal_coords.append(format_point(coord))
+        list_to_str = ' '.join(sorted(legal_coords)).lower()
         self.respond(list_to_str)
         
 
@@ -268,10 +265,8 @@ class GtpConnection:
                     color = self.board.get_color(pt)
                     if color != EMPTY:
                         for dirs in self.DIRECTIONS:
-                            connected = 1
-                            for _dir in dirs:
-                                connected += self.check_nbrs(pt, color, _dir)
-                            if connected >= 5:
+                            connected = self.check_win(pt,color,dirs)
+                            if self.check_win(pt,color,dirs):
                                 if color == BLACK:
                                     self.respond("black")
                                 elif color == WHITE:
@@ -313,6 +308,10 @@ class GtpConnection:
                 self.debug_msg(
                     "Move: {}\nBoard:\n{}\n".format(board_move, self.board2d())
                 )
+                for _dir in self.DIRECTIONS:
+                    if self.check_win(move, color, _dir):
+                        self.board.set_winner(color)
+                        break
         except Exception as e:
             self.respond("Error: {}".format(str(e)))
 
@@ -322,11 +321,14 @@ class GtpConnection:
         board_color = args[0].lower()
         color = color_to_int(board_color)
         legal_moves = self.board.get_empty_points()
-        move = random.choice(legal_moves)
-        move_coord = point_to_coord(move, self.board.size)
-        move_as_string = format_point(move_coord)
-        self.board.play_move(move, color)
-        self.respond(move_as_string)
+        if legal_moves.size != 0 and self.board.win == None:
+            move = random.choice(legal_moves)
+            move_coord = point_to_coord(move, self.board.size)
+            move_as_string = format_point(move_coord)
+            self.board.play_move(move, color)
+            self.respond(move_as_string)
+        else:
+            self.respond("pass")
 
     """
     ==========================================================================
