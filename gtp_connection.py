@@ -23,6 +23,8 @@ import re
 import random
 
 
+
+
 class GtpConnection:
     def __init__(self, go_engine, board, debug_mode=False):
         """
@@ -38,6 +40,7 @@ class GtpConnection:
         self._debug_mode = debug_mode
         self.go_engine = go_engine
         self.board = board
+        self.DIRECTIONS = [(self.board.NS, -self.board.NS),(1,-1),(self.board.NS + 1, -self.board.NS - 1),(self.board.NS - 1, -self.board.NS + 1)]
         self.commands = {
             "protocol_version": self.protocol_version_cmd,
             "quit": self.quit_cmd,
@@ -155,6 +158,18 @@ class GtpConnection:
     def board2d(self):
         return str(GoBoardUtil.get_twoD_board(self.board))
 
+    def check_nbrs(self, point, color, direction):
+        connected = 0
+        while True:
+            if self.board.get_color(point + direction) == color:
+                connected += 1
+                point += direction
+            elif connected == 4:
+                break
+            else:
+                break
+        return connected
+
     def protocol_version_cmd(self, args):
         """ Return the GTP protocol version being used (always 2) """
         self.respond("2")
@@ -210,9 +225,8 @@ class GtpConnection:
 
     def gogui_rules_legal_moves_cmd(self, args):
         """ Implement this function for Assignment 1 """
-        legal_moves = self.board.get_empty_points()
         legal_coords = []
-        for move in legal_moves:
+        for move in self.board.get_empty_points():
             coord = point_to_coord(move, self.board.size)
             legal_coords.append(format_point(coord))
         list_to_str = ' '.join(sorted(legal_coords))
@@ -243,11 +257,38 @@ class GtpConnection:
                     assert False
             str += '\n'
         self.respond(str)
-            
+
     def gogui_rules_final_result_cmd(self, args):
         """ Implement this function for Assignment 1 """
-        self.respond("unknown")
+        if self.board.get_empty_points().size != 0:
+            p = False
+            for rown in range(1,self.board.size+1):
+                for coln in range(1, self.board.size+1):
+                    pt = coord_to_point(rown,coln,self.board.size)
+                    color = self.board.get_color(pt)
+                    if color != EMPTY:
+                        for dirs in self.DIRECTIONS:
+                            connected = 1
+                            for _dir in dirs:
+                                connected += self.check_nbrs(pt, color, _dir)
+                            if connected >= 5:
+                                if color == BLACK:
+                                    self.respond("black")
+                                elif color == WHITE:
+                                    self.respond("white")
+                                p = True
+                                break
+                    if p:
+                        break
+                if p:
+                    break
+            if not p:
+                self.respond("unknown")
+        else:
+            self.respond("draw")
+                        
 
+          
     def play_cmd(self, args):
         """ Modify this function for Assignment 1 """
         """
@@ -331,6 +372,7 @@ class GtpConnection:
             gtp_moves.append(format_point(coords))
         sorted_moves = " ".join(sorted(gtp_moves))
         self.respond(sorted_moves)
+
 
 
 def point_to_coord(point, boardsize):
