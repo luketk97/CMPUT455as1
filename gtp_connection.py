@@ -327,8 +327,10 @@ class GtpConnection:
             move_as_string = format_point(move_coord)
             self.board.play_move(move, color)
             self.respond(move_as_string)
-        else:
+        elif legal_moves.size == 0:
             self.respond("pass")
+        elif self.board.win != None:
+            self.respond("resign")
 
     """
     ==========================================================================
