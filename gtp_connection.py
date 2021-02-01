@@ -324,7 +324,7 @@ class GtpConnection:
         if legal_moves.size != 0 and self.board.win == None:
             move = random.choice(legal_moves)
             move_coord = point_to_coord(move, self.board.size)
-            move_as_string = format_point(move_coord)
+            move_as_string = format_point(move_coord).lower()
             self.board.play_move(move, color)
             self.respond(move_as_string)
         elif legal_moves.size == 0:
